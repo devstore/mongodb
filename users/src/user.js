@@ -14,14 +14,25 @@ const UserSchema = new Schema({
   },
   posts: [PostSchema],
   likes: Number,
-  blogPosts:[{
-    type: Schema.Types.ObjectId,
-    ref: 'blogPost'
-  }]
+  blogPosts: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'blogPost',
+    },
+  ],
 })
 
 UserSchema.virtual('postCount').get(function () {
   return this.posts.length
+})
+
+UserSchema.pre('remove', function (next) {
+  //To avoid the cyclical load of user inside the blogPost, we can use below
+  const BlogPost = mongoose.model('blogPost')
+  //this === joe (current object)
+  BlogPost.remove({ _id: { $in: this.blogPosts } }).then(() => {
+    next()
+  })
 })
 
 const User = mongoose.model('user', UserSchema)
